@@ -1034,24 +1034,28 @@
                 font-size: 2rem;
             }
 
-            .arabic-verse {
-                font-size: 1.4rem;
-            }
+                .couple-section {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 30px;
+                }
 
-            .footer-dua {
-                font-size: 1.4rem;
-            }
+                .countdown-container {
+                    gap: 15px;
+                }
 
-            .cursor-dot, .cursor-ring {
-                display: none;
-            }
-        }
+                .countdown-box {
+                    min-width: 80px;
+                    padding: 15px;
+                }
 
-        @media (max-width: 480px) {
-            .groom-name, .bride-name {
-                font-size: 1.5rem;
-            }
+                .countdown-number {
+                    font-size: 2.5rem;
+                }
 
+                .hero-bismillah {
+                    font-size: 2rem;
+                }
             .weds-text {
                 font-size: 1.2rem;
             }
@@ -1230,6 +1234,54 @@
             .map-container {
                 height: 250px;
             }
+        }
+
+        /* Music Controls */
+        .music-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .music-btn {
+            background: linear-gradient(135deg, var(--gold), var(--romantic-pink));
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9rem;
+            color: white;
+            box-shadow: 0 10px 25px rgba(233,30,99,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .music-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(233,30,99,0.4);
+        }
+
+        .music-icon {
+            font-size: 1.2rem;
+            animation: musicPulse 2s ease-in-out infinite;
+        }
+
+        .music-btn.playing .music-icon {
+            animation: musicSpin 3s linear infinite;
+        }
+
+        @keyframes musicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes musicSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -1442,10 +1494,121 @@
         </footer>
     </div>
 
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop autoplay muted playsinline>
+        <source src="bgm.mp3" type="audio/mpeg">
+        <source src="bgm.mp3" type="audio/ogg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <!-- Hidden iframe for audio autoplay attempt -->
+    <iframe src="about:blank" style="display:none" id="audioFrame"></iframe>
+
     <!-- Custom Cursor Elements -->
     <div class="cursor-dot" id="cursorDot"></div>
     <div class="cursor-ring" id="cursorRing"></div>
     <script>
+        // Background Music Autoplay Handler
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        let musicPlayed = false;
+        
+        // Function to attempt playing music
+        function attemptMusicPlay() {
+            if (!musicPlayed && backgroundMusic) {
+                // Try playing muted first (more likely to be allowed)
+                backgroundMusic.muted = true;
+                backgroundMusic.play().then(() => {
+                    // If muted play succeeds, try to unmute
+                    setTimeout(() => {
+                        backgroundMusic.muted = false;
+                        musicPlayed = true;
+                        console.log('Background music started playing successfully');
+                    }, 100);
+                }).catch(error => {
+                    // Try unmuted as fallback
+                    backgroundMusic.muted = false;
+                    backgroundMusic.play().then(() => {
+                        musicPlayed = true;
+                        console.log('Background music started playing successfully');
+                    }).catch(error => {
+                        console.log('Autoplay was prevented, will try again:', error);
+                    });
+                });
+            }
+        }
+        
+        // Try to play music immediately when script loads
+        attemptMusicPlay();
+        
+        // Try again when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', attemptMusicPlay);
+        
+        // Try again when window is fully loaded
+        window.addEventListener('load', attemptMusicPlay);
+        
+        // Try again after a short delay (some browsers need time)
+        setTimeout(attemptMusicPlay, 1000);
+        
+        // Try with iframe approach
+        setTimeout(() => {
+            const audioFrame = document.getElementById('audioFrame');
+            if (audioFrame && !musicPlayed) {
+                try {
+                    audioFrame.contentDocument.body.innerHTML = `
+                        <audio autoplay loop>
+                            <source src="bgm.mp3" type="audio/mpeg">
+                        </audio>
+                    `;
+                } catch(e) {
+                    console.log('Iframe approach failed:', e);
+                }
+            }
+        }, 1500);
+        
+        // Fallback: Play on any user interaction if autoplay fails
+        document.addEventListener('click', function playMusicOnClick() {
+            if (!musicPlayed) {
+                attemptMusicPlay();
+            }
+        }, { once: false });
+        
+        document.addEventListener('keydown', function playMusicOnKey() {
+            if (!musicPlayed) {
+                attemptMusicPlay();
+            }
+        }, { once: false });
+        
+        document.addEventListener('mousemove', function playMusicOnMouseMove() {
+            if (!musicPlayed) {
+                attemptMusicPlay();
+                // Remove this listener after first attempt to avoid too many tries
+                document.removeEventListener('mousemove', playMusicOnMouseMove);
+            }
+        }, { once: true });
+        
+        // Additional triggers for beginning screen interactions
+        document.addEventListener('touchstart', function playMusicOnTouch() {
+            if (!musicPlayed) {
+                attemptMusicPlay();
+            }
+        }, { once: false });
+        
+        document.addEventListener('scroll', function playMusicOnScroll() {
+            if (!musicPlayed) {
+                attemptMusicPlay();
+                document.removeEventListener('scroll', playMusicOnScroll);
+            }
+        }, { once: true });
+        
+        // Try to unmute if music is playing but muted
+        setInterval(() => {
+            if (backgroundMusic && !backgroundMusic.paused && backgroundMusic.muted && !musicPlayed) {
+                backgroundMusic.muted = false;
+                musicPlayed = true;
+                console.log('Music unmuted successfully');
+            }
+        }, 2000);
+
         // Canvas Background Animation
         const canvas = document.getElementById('bg');
         const ctx = canvas.getContext('2d');
@@ -1663,6 +1826,21 @@
         setTimeout(() => {
             loadingScreen.classList.add('fade-out');
         }, 100);
+        
+        // Add music trigger for loading screen interaction
+        if (loadingScreen) {
+            loadingScreen.addEventListener('click', function() {
+                if (!musicPlayed) {
+                    attemptMusicPlay();
+                }
+            });
+            
+            loadingScreen.addEventListener('touchstart', function() {
+                if (!musicPlayed) {
+                    attemptMusicPlay();
+                }
+            });
+        }
 
         // Envelope Interaction
         const envelope = document.getElementById('envelope');
@@ -1671,6 +1849,16 @@
         
         envelopeContainer.addEventListener('click', function() {
             envelope.classList.add('open');
+            
+            // Play background music after first user interaction
+            if (!musicPlayed && backgroundMusic) {
+                backgroundMusic.play().then(() => {
+                    musicPlayed = true;
+                    console.log('Background music started playing');
+                }).catch(error => {
+                    console.log('Autoplay was prevented:', error);
+                });
+            }
             
             setTimeout(() => {
                 const letter = document.querySelector('.envelope-letter');
